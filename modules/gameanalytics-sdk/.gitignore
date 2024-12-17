@@ -1,0 +1,10 @@
+# Roblox place files
+*.rbxmx
+*.rbxm
+*.rbxl
+*.rbxlx
+
+# Other
+roblox.toml
+
+*.DS_Store

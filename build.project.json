@@ -1,0 +1,38 @@
+{
+  "name": "Analytics Dev",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+
+      "Packages": {
+        "$className": "Folder",
+
+        "Analytics": {
+          "$path": "src"
+        },
+
+        "Promise": {
+          "$path": "modules/roblox-lua-promise/lib"
+        },
+
+        "GameAnalytics": {
+          "$path": "modules/gameanalytics-sdk/gameanalytics-sdk"
+        }
+      },
+
+      "TestEZ": {
+        "$path": "modules/testez"
+      }
+	  },
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+
+      "ServerSample": {
+        "$path": "sample"
+      }
+    }
+  }
+}

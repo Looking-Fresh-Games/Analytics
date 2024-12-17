@@ -1,0 +1,30 @@
+{
+  "name": "analytics",
+  "version": "1.0.0",
+  "description": "Analytics wrapper for Roblox",
+  "main": "src/init.luau",
+  "scripts": {
+    "build:dependencies": "wally install",
+    "build:rojo": "rojo build -o dev-build.rbxl build.project.json",
+    "build:docs": "moonwave build",
+    "build": "npm run build:dependencies && npm run build:rojo",
+    "dev": "npm run build && concurrently \"dev-build.rbxl\" \"npm start\"",
+    "start": "rojo serve build.project.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Looking-Fresh-Games/Analytics.git"
+  },
+  "author": "dig1t",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Looking-Fresh-Games/Analytics/issues"
+  },
+  "homepage": "https://github.com/Looking-Fresh-Games/Analytics#readme",
+  "dependencies": {
+    "moonwave": "^1.2.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

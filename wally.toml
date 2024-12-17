@@ -1,0 +1,14 @@
+[package]
+name = "dig1t/analytics"
+version = "1.0.0-dev.1"
+description = "A wrapper for the GameAnalytics SDK"
+license = "Apache-2.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+include = ["src", "default.project.json"]
+exclude = ["src/**/*.spec.luau"]
+
+[dependencies]
+Promise = "evaera/promise@4.0.0"
+GameAnalytics = "dig1t/gameanalytics-sdk@2.2.8"

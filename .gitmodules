@@ -1,0 +1,9 @@
+[submodule "modules/testez"]
+	path = modules/testez
+	url = https://github.com/Roblox/testez.git
+[submodule "modules/gameanalytics-sdk"]
+	path = modules/gameanalytics-sdk
+	url = https://github.com/dig1t/gameanalytics-sdk.git
+[submodule "modules/roblox-lua-promise"]
+	path = modules/roblox-lua-promise
+	url = https://github.com/evaera/roblox-lua-promise.git
