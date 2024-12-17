@@ -46,11 +46,6 @@ jobs:
           # read wally.toml file
           wallyTOMLContents=$(<wally.toml)
 
-          # swap out name
-          targetNameLine=$(echo "$wallyTOMLContents" | grep -F "name = ")
-          goalNameLine="name = \"${{github.repository}}\""
-          wallyTOMLContents="${wallyTOMLContents/${targetNameLine}/${goalNameLine}}"
-
           # swap out version
           targetVersionLine=$(echo "$wallyTOMLContents" | grep -F "version = ")
           goalVersionLine="version = \"${{ steps.version.outputs.version }}\""
