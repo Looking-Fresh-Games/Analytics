@@ -12,6 +12,9 @@ on:
 
 jobs:
   publish:
+    permissions:
+      contents: write
+      pull-requests: read
     runs-on: ubuntu-24.04
 
     steps:
@@ -82,28 +85,10 @@ jobs:
           git commit -m "Update to v${{ steps.version.outputs.version }}"
           git push -u origin main --force-with-lease || true
 
-          COMMIT_SHA=$(git rev-parse HEAD)
-
           echo "Committed changes"
-          echo "commitSHA=$COMMIT_SHA" >> $GITHUB_OUTPUT
-
-      # Create GitHub release
-      - uses: release-drafter/release-drafter@v6
-        id: createRelease
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          name: 'v${{ steps.version.outputs.version }}'
-          tag: 'v${{ steps.version.outputs.version }}'
-          version: ${{ steps.version.outputs.version }}
-          publish: true
-          commitish: ${{ steps.commit-files.outputs.commitSHA }}
 
       - name: Install aftman dependencies
         uses: ok-nick/setup-aftman@v0.4.2
-
-      - name: Install dependencies
-        run: npm run build:dependencies
 
       - name: Publish to wally
         shell: bash
@@ -115,15 +100,10 @@ jobs:
           printf "[tokens]\n\"https://api.wally.run/\" = \"%s\"" "$WALLY_TOKEN" >> ~/.wally/auth.toml
           wally publish
 
-      - name: Build package place file
-        run: rojo build -o ${{ github.event.repository.name }}.rbxl build.project.json
-
-      - name: Upload Roblox level file to release
-        uses: actions/upload-release-asset@v1
+      # Create GitHub release
+      - uses: release-drafter/release-drafter@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.createRelease.outputs.upload_url }}
-          asset_path: ${{ github.event.repository.name }}.rbxl
-          asset_name: ${{ github.event.repository.name }}.rbxl
-          asset_content_type: application/octet-stream
+          version: ${{ steps.version.outputs.version }}
+          publish: true
