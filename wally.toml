@@ -1,5 +1,5 @@
 [package]
-name = "dig1t/analytics"
+name = "lfg-studio/analytics"
 version = "1.0.0-dev.1"
 description = "A wrapper for the GameAnalytics SDK"
 license = "Apache-2.0"
