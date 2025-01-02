@@ -70,11 +70,11 @@ export type DimensionData = {
 }
 
 --[=[
-	@type CustomDimensions { [string]: { string }? }
+	@type CustomDimensions { [string]: { string } }
 	@within Analytics
 ]=]
 export type CustomDimensions = {
-	[string]: { string }?,
+	[string]: { string },
 }
 
 --[=[
