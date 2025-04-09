@@ -100,7 +100,10 @@ export type RemoteConfig = AnalyticsTypes.RemoteConfig
 export type PsuedoPlayerData = AnalyticsTypes.PsuedoPlayerData
 export type ServerPsuedoPlayer = AnalyticsTypes.ServerPsuedoPlayer
 export type AnalyticsOptions = AnalyticsTypes.AnalyticsOptions
-export type Promise = AnalyticsTypes.Promise
+export type PromiseStatus = AnalyticsTypes.PromiseStatus
+export type PromiseStatuses = AnalyticsTypes.PromiseStatuses
+export type Promise<T, U> = AnalyticsTypes.Promise<T, U>
+export type TeleportEvent = AnalyticsTypes.TeleportEvent
 
 local DEFAULT_TRANSACTION_TYPE: TransactionType = "Gameplay"
 
@@ -118,6 +121,7 @@ local configuration: {
 	secretKey: string,
 	customDimensions: CustomDimensions?,
 	logErrors: boolean?,
+	debug: boolean?,
 }
 
 local remote: RemoteEvent
@@ -152,11 +156,12 @@ end
 
 -- Used to safely send an event to GameAnalytics
 -- without an error being thrown
-function gaWrapper(fn: string, ...)
+function gaWrapper(fn: string, ...): Promise<any, any>
 	local args = { ... }
 
 	local promiseFunction = Promise.promisify(GameAnalytics[fn])
-	promiseFunction(GameAnalytics, unpack(args)):catch(catch)
+
+	return promiseFunction(GameAnalytics, unpack(args)):catch(catch)
 end
 
 -- Flush any tracked events for a player
@@ -298,10 +303,12 @@ local function startGameAnalytics()
 
 	GameAnalytics:configureBuild(configuration.build)
 	GameAnalytics:configureAvailableResourceCurrencies(configuration.currencies)
-	GameAnalytics:setEnabledInfoLog(false)
-	GameAnalytics:setEnabledVerboseLog(false)
-	GameAnalytics:setEnabledDebugLog(false)
-	GameAnalytics:setEnabledReportErrors(configuration.logErrors == true)
+	GameAnalytics:setEnabledInfoLog(configuration.debug == true)
+	GameAnalytics:setEnabledVerboseLog(configuration.debug == true)
+	GameAnalytics:setEnabledDebugLog(configuration.debug == true)
+	GameAnalytics:setEnabledReportErrors(
+		configuration.logErrors == true or configuration.debug == true
+	)
 	GameAnalytics:setEnabledAutomaticSendBusinessEvents(false)
 	GameAnalytics:initServer(configuration.gameKey, configuration.secretKey)
 end
@@ -469,7 +476,7 @@ end
 
 local Validate = {}
 
-function Validate.event(data: BaseEvent): Promise
+function Validate.event(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with Analytics.start()")
@@ -488,7 +495,7 @@ function Validate.event(data: BaseEvent): Promise
 	end)
 end
 
-function Validate.playerEvent(data: BaseEvent): Promise
+function Validate.playerEvent(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not data.player then
 			return reject("player is required")
@@ -498,7 +505,7 @@ function Validate.playerEvent(data: BaseEvent): Promise
 	end)
 end
 
-function Validate.dimensionData(data: DimensionData): Promise
+function Validate.dimensionData(data: DimensionData): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not data then
 			return reject("data is required")
@@ -520,6 +527,24 @@ local GA_DIMENSIONS: { string } = {
 	"dimension03",
 }
 
+--[=[
+	Starts the Analytics module and initializes GameAnalytics with the provided configuration.
+
+	```lua
+	local Analytics = require(ReplicatedStorage.Shared.Modules.Analytics)
+
+	Analytics.start({
+		currencies = { "Coins" },
+		build = "1.0.0",
+		gameKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		secretKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		-- secret = "ga_secret" -- You can use Roblox secrets as well
+	})
+	```
+
+	@server
+	@param options AnalyticsOptions
+]=]
 function Analytics.start(options: AnalyticsOptions)
 	if analyticsStarted then
 		warn("Analytics.start() - Analytics has already been started")
@@ -569,18 +594,31 @@ function Analytics.start(options: AnalyticsOptions)
 	end
 
 	local success: boolean, secretKey: string? = pcall(function()
-		-- Check for secret key in the experience settings
-		if options.secret then
-			return HttpService:GetSecret(options.secret)
+		if options.secretKey then
+			return options.secretKey
 		end
 
-		return options.secretKey
+		-- Check for secret key in the experience settings
+		local secretSuccess, secret = pcall(function()
+			return HttpService:GetSecret(options.secret)
+		end)
+
+		if secretSuccess and string.len(secret) == 0 then
+			secret = nil
+		end
+
+		if not secretSuccess or not secret then
+			-- If the secret is not found, try falling back to "secretKey"
+			secret = options.secretKey
+		end
+
+		return secret
 	end)
 
 	if not success or not secretKey then
 		if options.secret then
-			warn(
-				`Analytics.SetConfig - Failed to get secret "{options.secret}" from Roblox`
+			error(
+				`Analytics.start - Failed to get secret "{options.secret}" from Roblox. Check your domain list on the secrets page.`
 			)
 		end
 
@@ -632,7 +670,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logPlayerEvent(data: BaseEvent): Promise
+function Analytics.logPlayerEvent(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if isClient then
 			-- Forward to the server for processing
@@ -669,6 +707,7 @@ function Analytics.logPlayerEvent(data: BaseEvent): Promise
 end
 
 --[=[
+	```lua
 	Analytics.logMarketplacePurchase({
 		player = Player,
 		itemType = "Product",
@@ -683,7 +722,9 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logMarketplacePurchase(data: MarketplacePurchaseEvent)
+function Analytics.logMarketplacePurchase(
+	data: MarketplacePurchaseEvent
+): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with :Start()")
@@ -709,6 +750,62 @@ function Analytics.logMarketplacePurchase(data: MarketplacePurchaseEvent)
 end
 
 --[=[
+
+
+	```lua
+	local TeleportService = game:GetService("TeleportService")
+
+	local TELEPORT_PLACE_ID = 000000000 -- Replace with your place ID
+
+	local teleportData = {
+		map = "Map 1",
+		mission = "Mission Name",
+		-- Add any other data you want to send
+	}
+
+	Analytics.addTeleportData({
+		players = Players:GetPlayers(),
+		teleportData = missionData,
+	})
+
+	local teleportOptions = Instance.new("TeleportOptions")
+	teleportOptions:SetTeleportData(teleportData)
+
+	TeleportService:TeleportAsync(TELEPORT_PLACE_ID, {player}, teleportOptions)
+	```
+
+	@server
+	@param data TeleportEvent
+	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
+	@return { [string]: any } -- The modified teleportData table
+]=]
+function Analytics.addTeleportData(
+	data: TeleportEvent
+): Promise<{ [string]: any }, string>
+	local playerIds = {}
+
+	for _, player in data.players do
+		table.insert(playerIds, player.UserId)
+	end
+
+	if not analyticsStarted then
+		return Promise.reject("Analytics must be configured with :Start()")
+	elseif not data.players then
+		return Promise.reject("data.players must be defined")
+	elseif not data.teleportData then
+		return Promise.reject("data.teleportData is required")
+	elseif typeof(data.teleportData) ~= "table" then
+		return Promise.reject("data.teleportData must be a table")
+	end
+
+	-- Run the wrapper asynchronously. Since this doesn't yield
+	local success, newTeleportData =
+		gaWrapper("addGameAnalyticsTeleportData", playerIds, data.teleportData):await()
+
+	return Promise.resolve(if success then newTeleportData else data.teleportData)
+end
+
+--[=[
 	Shortcut function for logResourceEvent
 	Used to log in-game currency purchases
 
@@ -727,7 +824,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logPurchase(data: PurchaseEvent)
+function Analytics.logPurchase(data: PurchaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with :Start()")
@@ -790,7 +887,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logResourceEvent(data: ResourceEvent)
+function Analytics.logResourceEvent(data: ResourceEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with :Start()")
@@ -858,7 +955,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logError(data: ErrorEvent)
+function Analytics.logError(data: ErrorEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with :Start()")
@@ -912,7 +1009,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.logPlayerProgression(data: ProgressionEvent)
+function Analytics.logPlayerProgression(data: ProgressionEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
 			return reject("Analytics must be configured with Analytics.Start()")
@@ -975,7 +1072,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.addDelayedEvent(data: BaseEvent): Promise
+function Analytics.addDelayedEvent(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if isClient then
 			-- Forward to the server for processing
@@ -1028,7 +1125,7 @@ end
 	@param data BaseEvent
 	@return Promise
 ]=]
-function Analytics.addTrackedValue(data: BaseEvent): Promise
+function Analytics.addTrackedValue(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if isClient then
 			-- Forward to the server for processing
@@ -1077,7 +1174,7 @@ end
 
 	Example Use:
 	```lua
-	local success: boolean, remoteValue: string = Analytics.getRemoteConfig({
+	local success: boolean, remoteValue: string? = Analytics.getRemoteConfig({
 		player = player,
 		name = "Test",
 		defaultValue = "Default"
@@ -1101,7 +1198,7 @@ end
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.getRemoteConfig(remoteConfig: RemoteConfig): Promise
+function Analytics.getRemoteConfig(remoteConfig: RemoteConfig): Promise<string, string>
 	return Promise.new(function(resolve, reject)
 		if not remoteConfig then
 			return reject("Analytics.getRemoteConfig - remoteConfig is required")
@@ -1179,7 +1276,7 @@ local dimensionSetter: { [AnalyticsTypes.GADimension]: string } = {
 	//@external Promise https://eryn.io/roblox-lua-promise/api/Promise
 	@return Promise
 ]=]
-function Analytics.setCustomDimension(data: DimensionData): Promise
+function Analytics.setCustomDimension(data: DimensionData): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if isClient then
 			-- Forward to the server for processing
@@ -1188,8 +1285,7 @@ function Analytics.setCustomDimension(data: DimensionData): Promise
 			return resolve()
 		end
 
-		local validated: boolean, reason: string? = Validate.dimensionData(data :: any)
-			:await()
+		local validated: boolean, reason: string? = Validate.dimensionData(data):await()
 
 		if not validated then
 			return reject(reason)

@@ -3,14 +3,14 @@
 	.event string
 	.value number?
 	.player Player? -- Player who triggered the event (set on the server)
-	.fields { [string]: any }? -- Additional fields to be sent with the event
+	.fields { string }? -- Additional fields to be sent with the event
 	@within Analytics
 ]=]
 export type BaseEvent = {
 	event: string,
 	value: number?,
 	player: Player?,
-	fields: { [string]: any }?,
+	fields: { string }?,
 }
 
 --[=[
@@ -59,7 +59,7 @@ export type ProgressionStatus = "Start" | "Fail" | "Complete"
 --[=[
 	@interface DimensionData
 	@within Analytics
-	.dimension GADimension
+	.event GADimension
 	.value string
 	.player Player -- Player who triggered the event
 ]=]
@@ -264,23 +264,31 @@ export type AnalyticsOptions = {
 
 -- The Promise library isn't typed so we have to create our own type
 -- //@external Promise https://eryn.io/roblox-lua-promise/api/Promise
-export type Promise = {
-	new: (callback: (resolve: () -> (), reject: () -> ()) -> ()) -> Promise,
-	resolve: (value: any) -> Promise,
-	reject: (value: any) -> Promise,
-	andThen: (Promise, callback: (any) -> ()) -> Promise,
-	catch: (Promise, callback: (any) -> ()) -> Promise,
-	finally: (Promise, callback: (any) -> ()) -> Promise,
-	cancel: (Promise) -> (),
-	await: (Promise) -> (any, any),
-	expect: (Promise) -> (any, any),
-	getStatus: (Promise) -> string,
-	Status: {
-		Started: "Started", -- The Promise is executing, and not settled yet.
-		Resolved: "Resolved", -- The Promise finished successfully.
-		Rejected: "Rejected", -- The Promise was rejected.
-		Cancelled: "Cancelled", -- The Promise was cancelled before it finished.
-	},
+
+export type PromiseStatus = "Started" | "Resolved" | "Rejected" | "Cancelled"
+export type PromiseStatuses = {
+	Started: "Started", -- The Promise is executing, and not settled yet.
+	Resolved: "Resolved", -- The Promise finished successfully.
+	Rejected: "Rejected", -- The Promise was rejected.
+	Cancelled: "Cancelled", -- The Promise was cancelled before it finished.
+}
+export type Promise<T, U> = {
+	new: (callback: (resolve: (T) -> (), reject: (U) -> ()) -> ()) -> Promise<T, U>,
+	resolve: (Promise<T, U>, T) -> Promise<T, U>,
+	reject: (Promise<T, U>, U) -> Promise<T, U>,
+	andThen: (Promise<T, U>, callback: (result: T) -> ()) -> Promise<T, U>,
+	catch: (Promise<T, U>, callback: (err: U) -> ()) -> Promise<T, U>,
+	finally: (Promise<T, U>, callback: (status: PromiseStatus) -> ()) -> Promise<T, U>,
+	cancel: (Promise<T, U>) -> (),
+	await: (Promise<T, U>) -> (boolean, T | U),
+	expect: (Promise<T, U>) -> T,
+	getStatus: (Promise<T, U>) -> PromiseStatus,
+	Status: PromiseStatuses,
+}
+
+export type TeleportEvent = {
+	players: { Player },
+	teleportData: { [unknown]: unknown },
 }
 
 return nil
