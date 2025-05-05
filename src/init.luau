@@ -142,11 +142,15 @@ else
 	remote.Parent = script
 end
 
-local function catch()
+local function catch(...)
 	-- Do nothing
 	-- This is here to prevent unhandled promise rejections
 	-- You can add your own error handling when using one of the Analytics functions
 	-- since they all return Promises
+
+	if configuration.debug == true then
+		warn(...)
+	end
 end
 
 -- Formats an ID string to be GameAnalytics compatible
