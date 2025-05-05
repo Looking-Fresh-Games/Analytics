@@ -251,6 +251,7 @@ export type ServerPsuedoPlayer = {
 	.secret string? -- Roblox secret name
 	.customDimensions CustomDimensions? -- Custom dimensions to be used in GameAnalytics (refer to [GameAnalytics docs](https://docs.gameanalytics.com/advanced-tracking/custom-dimensions) about dimensions)
 	.logErrors boolean? -- Whether or not to log errors (defaults to false)
+	.debug boolean? -- Whether or not to log debug messages (defaults to false)
 ]=]
 export type AnalyticsOptions = {
 	currencies: { string }?,
@@ -260,6 +261,7 @@ export type AnalyticsOptions = {
 	secret: string?,
 	customDimensions: CustomDimensions?,
 	logErrors: boolean?,
+	debug: boolean?,
 }
 
 -- The Promise library isn't typed so we have to create our own type
