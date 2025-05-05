@@ -135,12 +135,12 @@ if isClient then
 else
 	-- Prevent unwanted SDK warnings and errors from showing in production
 	GameAnalytics.Logger.w = function(_, ...)
-		if debug then
+		if configuration.debug then
 			warn(...)
 		end
 	end -- Force disable warnings
 	GameAnalytics.Logger.e = function(_, ...)
-		if debug then
+		if configuration.debug then
 			error(...)
 		end
 	end -- Force disable errors
@@ -644,6 +644,7 @@ function Analytics.start(options: AnalyticsOptions)
 		secretKey = secretKey,
 		customDimensions = options.customDimensions or {},
 		logErrors = options.logErrors or false,
+		debug = options.debug or false,
 	}
 
 	-- Start analytics services
@@ -742,12 +743,12 @@ function Analytics.logMarketplacePurchase(
 			return reject("Analytics must be configured with :Start()")
 		elseif not data.player then
 			return reject("player is required")
-		elseif not data.itemType then
-			return reject("itemType is required")
 		elseif not data.id then
 			return reject("id is required")
+		elseif not data.itemType then
+			return reject(`itemType is required for item "{data.id}"`)
 		elseif not data.cartType then
-			return reject("cartType is required")
+			return reject(`cartType is required for item "{data.id}"`)
 		end
 
 		gaWrapper("addBusinessEvent", data.player.UserId, {
@@ -847,16 +848,20 @@ function Analytics.logPurchase(data: PurchaseEvent): Promise<nil, string>
 		elseif not data.itemId then
 			return reject("itemId is required")
 		elseif not data.currency then
-			return reject("currency is required")
+			return reject(`currency is required for item "{data.itemId}"`)
 		elseif not table.find(configuration.currencies, data.currency) then
-			return reject("currency type is invalid")
+			return reject(
+				`currency type "{data.currency}" for item "{data.itemId}" is invalid`
+			)
 		elseif data.amount ~= nil and typeof(data.amount) ~= "number" then
-			return reject("amount is required")
+			return reject(`amount for item "{data.itemId}" is required`)
 		elseif
 			data.flowType ~= nil
 			and not GameAnalytics.EGAResourceFlowType[data.flowType]
 		then
-			return reject("flow type is invalid")
+			return reject(
+				`flow type "{data.flowType}" for item "{data.itemId}" is invalid`
+			)
 		end
 
 		if not table.find(resourceEventTypes, data.eventType) then
@@ -912,9 +917,11 @@ function Analytics.logResourceEvent(data: ResourceEvent): Promise<nil, string>
 		elseif not data.currency then
 			return reject("currency is required")
 		elseif not table.find(configuration.currencies, data.currency) then
-			return reject("currency type is invalid")
+			return reject(
+				`currency type "{data.currency}" for item "{data.itemId}" is invalid`
+			)
 		elseif typeof(data.amount) ~= "number" then
-			return reject("amount is required")
+			return reject(`amount for item "{data.itemId}" is required`)
 		end
 
 		if data.eventType and not table.find(resourceEventTypes, data.eventType) then
@@ -1032,12 +1039,15 @@ function Analytics.logPlayerProgression(data: ProgressionEvent): Promise<nil, st
 		elseif not data.eventId then
 			return reject("eventId is required")
 		elseif data.step ~= nil and typeof(data.step) ~= "number" then
-			return reject("step must be a number")
+			return reject(`step for event id "{data.eventId}" must be a number`)
 		elseif data.stepName ~= nil and typeof(data.stepName) ~= "string" then
-			return reject("stepName must be a string")
+			return reject(`stepName for event id "{data.eventId}" must be a string`)
 		elseif data.value ~= nil and typeof(data.value) ~= "number" then
-			return reject("value must be a number")
+			return reject(`value for event id "{data.eventId}" must be a number`)
 		end
+
+		data.eventId = formatEventString(data.eventId)
+		data.stepName = string.gsub(formatEventString(data.stepName), ":", "_")
 
 		if data.eventId == "Onboarding" then
 			AnalyticsService:LogOnboardingFunnelStepEvent(
@@ -1060,8 +1070,8 @@ function Analytics.logPlayerProgression(data: ProgressionEvent): Promise<nil, st
 		gaWrapper("addProgressionEvent", data.player.UserId, {
 			progressionStatus = GameAnalytics.EGAProgressionStatus[data.status]
 				or "Start",
-			progression01 = formatEventString(data.eventId),
-			progression02 = formatEventString(`{data.stepName}_{data.step}`),
+			progression01 = data.eventId,
+			progression02 = `{data.stepName}_{data.step}`,
 			score = data.value or 0,
 		})
 
