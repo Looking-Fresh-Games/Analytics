@@ -134,8 +134,16 @@ if isClient then
 	remote = script:WaitForChild("AnalyticsEvent")
 else
 	-- Prevent unwanted SDK warnings and errors from showing in production
-	GameAnalytics.Logger.w = function() end -- Force disable warnings
-	GameAnalytics.Logger.e = function() end -- Force disable errors
+	GameAnalytics.Logger.w = function(_, ...)
+		if debug then
+			warn(...)
+		end
+	end -- Force disable warnings
+	GameAnalytics.Logger.e = function(_, ...)
+		if debug then
+			error(...)
+		end
+	end -- Force disable errors
 
 	remote = Instance.new("RemoteEvent")
 	remote.Name = "AnalyticsEvent"
@@ -1016,15 +1024,15 @@ end
 function Analytics.logPlayerProgression(data: ProgressionEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if not analyticsStarted then
-			return reject("Analytics must be configured with Analytics.Start()")
+			return reject("Analytics must be configured with Analytics.start()")
 		elseif not data.player then
 			return reject("player is required")
 		elseif not data.status then
 			return reject("status is required")
 		elseif not data.eventId then
-			return reject("progression01 is required")
+			return reject("eventId is required")
 		elseif data.step ~= nil and typeof(data.step) ~= "number" then
-			return reject("step must be a string")
+			return reject("step must be a number")
 		elseif data.stepName ~= nil and typeof(data.stepName) ~= "string" then
 			return reject("stepName must be a string")
 		elseif data.value ~= nil and typeof(data.value) ~= "number" then
@@ -1302,15 +1310,15 @@ function Analytics.setCustomDimension(data: DimensionData): Promise<nil, string>
 
 		if not configuration.customDimensions then
 			return reject(
-				"Analytics.setCustomDimension - customDimensions was not defined during Analytics.Start()"
+				"Analytics.setCustomDimension - customDimensions was not defined during Analytics.start()"
 			)
 		elseif not dimensions then
 			return reject(
-				"Analytics.setCustomDimension - dimension is invalid, please define it in customDimensions during Analytics.Start()"
+				"Analytics.setCustomDimension - dimension is invalid, please define it in customDimensions during Analytics.start()"
 			)
 		elseif dimensions and not table.find(dimensions, data.value) then
 			return reject(
-				"Analytics.setCustomDimension - dimension value is invalid, please define it as a value in customDimensions during Analytics.Start()"
+				"Analytics.setCustomDimension - dimension value is invalid, please define it as a value in customDimensions during Analytics.start()"
 			)
 		end
 
