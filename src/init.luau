@@ -1060,8 +1060,8 @@ function Analytics.logPlayerProgression(data: ProgressionEvent): Promise<nil, st
 		gaWrapper("addProgressionEvent", data.player.UserId, {
 			progressionStatus = GameAnalytics.EGAProgressionStatus[data.status]
 				or "Start",
-			progression01 = data.eventId,
-			progression02 = `{data.stepName}_{data.step}`,
+			progression01 = formatEventString(data.eventId),
+			progression02 = formatEventString(`{data.stepName}_{data.step}`),
 			score = data.value or 0,
 		})
 
