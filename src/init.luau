@@ -350,6 +350,10 @@ local function handleListeners()
 				event = dimensionData.event,
 				value = dimensionData.value,
 			})
+		elseif action == "LOG_PROGRESSION_EVENT" then
+			local progressionData: ProgressionEvent = data :: any
+
+			Analytics.logPlayerProgression(progressionData)
 		end
 	end)
 
