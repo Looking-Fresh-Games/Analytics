@@ -122,7 +122,7 @@ local configuration: {
 	customDimensions: CustomDimensions?,
 	logErrors: boolean?,
 	debug: boolean?,
-}
+}?
 
 local remote: RemoteEvent
 
@@ -135,12 +135,12 @@ if isClient then
 else
 	-- Prevent unwanted SDK warnings and errors from showing in production
 	GameAnalytics.Logger.w = function(_, ...)
-		if configuration.debug then
+		if configuration and configuration.debug then
 			warn(...)
 		end
 	end -- Force disable warnings
 	GameAnalytics.Logger.e = function(_, ...)
-		if configuration.debug then
+		if configuration and configuration.debug then
 			error(...)
 		end
 	end -- Force disable errors
@@ -156,7 +156,7 @@ local function catch(...)
 	-- You can add your own error handling when using one of the Analytics functions
 	-- since they all return Promises
 
-	if configuration.debug == true then
+	if configuration and configuration.debug == true then
 		warn(...)
 	end
 end
@@ -292,12 +292,12 @@ end
 
 -- Starts GameAnalytics with the provided configuration
 local function startGameAnalytics()
-	if analyticsStarted then
+	if analyticsStarted or not configuration then
 		return
 	end
 
 	-- Enable any defined custom dimensions
-	if configuration.customDimensions then
+	if configuration and configuration.customDimensions then
 		local dimensions: CustomDimensions = configuration.customDimensions
 
 		if dimensions and dimensions.dimension01 then
@@ -849,7 +849,9 @@ function Analytics.logPurchase(data: PurchaseEvent): Promise<nil, string>
 			return reject("itemId is required")
 		elseif not data.currency then
 			return reject(`currency is required for item "{data.itemId}"`)
-		elseif not table.find(configuration.currencies, data.currency) then
+		elseif
+			configuration and not table.find(configuration.currencies, data.currency)
+		then
 			return reject(
 				`currency type "{data.currency}" for item "{data.itemId}" is invalid`
 			)
@@ -916,7 +918,9 @@ function Analytics.logResourceEvent(data: ResourceEvent): Promise<nil, string>
 			return reject("itemId is required")
 		elseif not data.currency then
 			return reject("currency is required")
-		elseif not table.find(configuration.currencies, data.currency) then
+		elseif
+			configuration and not table.find(configuration.currencies, data.currency)
+		then
 			return reject(
 				`currency type "{data.currency}" for item "{data.itemId}" is invalid`
 			)
@@ -1222,7 +1226,11 @@ end
 ]=]
 function Analytics.getRemoteConfig(remoteConfig: RemoteConfig): Promise<string, string>
 	return Promise.new(function(resolve, reject)
-		if not remoteConfig then
+		if not configuration then
+			return reject(
+				"Analytics.getRemoteConfig - Analytics must be configured with :Start()"
+			)
+		elseif not remoteConfig then
 			return reject("Analytics.getRemoteConfig - remoteConfig is required")
 		elseif not remoteConfig.name then
 			return reject("Analytics.getRemoteConfig - remoteConfig.name is required")
@@ -1307,10 +1315,16 @@ function Analytics.setCustomDimension(data: DimensionData): Promise<nil, string>
 			return resolve()
 		end
 
+		if not configuration then
+			return reject(
+				"Analytics.setCustomDimension - Analytics must be configured with :Start()"
+			)
+		end
+
 		local validated: boolean, reason: string? = Validate.dimensionData(data):await()
 
 		if not validated then
-			return reject(reason)
+			return reject(reason or "Invalid data")
 		elseif not data.player then
 			return reject("player is required")
 		end
