@@ -11,4 +11,4 @@ exclude = ["src/**/*.spec.luau"]
 
 [dependencies]
 Promise = "evaera/promise@4.0.0"
-GameAnalytics = "dig1t/gameanalytics-sdk@2.2.8"
+GameAnalytics = "dig1t/gameanalytics-sdk@2.2.86"
