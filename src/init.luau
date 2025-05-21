@@ -728,7 +728,12 @@ function Analytics.logPlayerEvent(data: BaseEvent): Promise<nil, string>
 			then eventFields
 			else (data.fields and stringTableToRobloxCustomFields(data.fields) or {})
 
-		AnalyticsService:LogCustomEvent(data.player, data.event, data.value, fields)
+		AnalyticsService:LogCustomEvent(
+			data.player,
+			if eventContainsFields then string.split(event, ":")[1] else event,
+			data.value,
+			fields
+		)
 
 		gaWrapper("addDesignEvent", data.player.UserId, {
 			eventId = if eventContainsFields
