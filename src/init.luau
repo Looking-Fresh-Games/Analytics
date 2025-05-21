@@ -188,6 +188,7 @@ local function flushTrackedEvents(player: Player)
 				player = player,
 				event = event.event,
 				value = event.value,
+				fields = event.fields,
 			})
 		end
 
@@ -261,6 +262,17 @@ local function getCustomFields(event: string): { [string]: string }
 	end
 
 	return stringTableToRobloxCustomFields(customFields)
+end
+
+-- Concats table values into a string separated by :
+local function robloxCustomFieldsToGAEvent(fields: { [any]: string }): string
+	local event = ""
+
+	for _, field in pairs(fields) do
+		event = event .. field .. ":"
+	end
+
+	return string.sub(event, 1, -2)
 end
 
 -- Grabs product info from MarketplaceService and caches it
@@ -691,6 +703,7 @@ function Analytics.logPlayerEvent(data: BaseEvent): Promise<nil, string>
 	return Promise.new(function(resolve, reject)
 		if isClient then
 			-- Forward to the server for processing
+
 			remote:FireServer("LOG_PLAYER_EVENT", data)
 			return resolve()
 		end
@@ -707,15 +720,20 @@ function Analytics.logPlayerEvent(data: BaseEvent): Promise<nil, string>
 
 		local event: string = formatEventString(data.event)
 
-		AnalyticsService:LogCustomEvent(
-			data.player,
-			event,
-			data.value,
-			getCustomFields(data.event)
-		)
+		local eventFields = getCustomFields(event)
+
+		local eventContainsFields = eventFields["CustomField01"] ~= nil
+
+		local fields = if eventContainsFields
+			then eventFields
+			else (data.fields and stringTableToRobloxCustomFields(data.fields) or {})
+
+		AnalyticsService:LogCustomEvent(data.player, data.event, data.value, fields)
 
 		gaWrapper("addDesignEvent", data.player.UserId, {
-			eventId = data.event,
+			eventId = if eventContainsFields
+				then event
+				else `{event}:{robloxCustomFieldsToGAEvent(fields)}`,
 			value = data.value,
 		})
 

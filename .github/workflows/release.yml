@@ -105,3 +105,11 @@ jobs:
           mkdir -p ~/.wally
           printf "[tokens]\n\"https://api.wally.run/\" = \"%s\"" "$WALLY_TOKEN" >> ~/.wally/auth.toml
           wally publish
+
+      # Create GitHub release
+      - uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: ${{ steps.version.outputs.version }}
+          publish: true
