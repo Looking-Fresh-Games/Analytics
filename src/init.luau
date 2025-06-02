@@ -955,6 +955,8 @@ function Analytics.logResourceEvent(data: ResourceEvent): Promise<nil, string>
 			return reject(`amount for item "{data.itemId}" is required`)
 		end
 
+		data.amount = math.abs(data.amount) -- Ensure amount is always positive
+
 		if data.eventType and not table.find(resourceEventTypes, data.eventType) then
 			resourceEventTypes[#resourceEventTypes + 1] = data.eventType
 			GameAnalytics.Events:setAvailableResourceItemTypes(resourceEventTypes) -- Update the SDK
