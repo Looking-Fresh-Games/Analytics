@@ -83,27 +83,26 @@ local RunService = game:GetService("RunService")
 
 local GameAnalytics = require(script.Parent.GameAnalytics)
 local Promise = require(script.Parent.Promise)
+local Types = require(script.Types)
 
-local AnalyticsTypes = require(script.Types)
-
-export type TransactionType = AnalyticsTypes.TransactionType
-export type BaseEvent = AnalyticsTypes.BaseEvent
-export type DimensionData = AnalyticsTypes.DimensionData
-export type CustomDimensions = AnalyticsTypes.CustomDimensions
-export type MarketplacePurchaseEvent = AnalyticsTypes.MarketplacePurchaseEvent
-export type PurchaseEvent = AnalyticsTypes.PurchaseEvent
-export type ResourceEvent = AnalyticsTypes.ResourceEvent
-export type ErrorEvent = AnalyticsTypes.ErrorEvent
-export type ProgressionEvent = AnalyticsTypes.ProgressionEvent
-export type DimensionEvent = AnalyticsTypes.DimensionEvent
-export type RemoteConfig = AnalyticsTypes.RemoteConfig
-export type PsuedoPlayerData = AnalyticsTypes.PsuedoPlayerData
-export type ServerPsuedoPlayer = AnalyticsTypes.ServerPsuedoPlayer
-export type AnalyticsOptions = AnalyticsTypes.AnalyticsOptions
-export type PromiseStatus = AnalyticsTypes.PromiseStatus
-export type PromiseStatuses = AnalyticsTypes.PromiseStatuses
-export type Promise<T, U> = AnalyticsTypes.Promise<T, U>
-export type TeleportEvent = AnalyticsTypes.TeleportEvent
+export type TransactionType = Types.TransactionType
+export type BaseEvent = Types.BaseEvent
+export type DimensionData = Types.DimensionData
+export type CustomDimensions = Types.CustomDimensions
+export type MarketplacePurchaseEvent = Types.MarketplacePurchaseEvent
+export type PurchaseEvent = Types.PurchaseEvent
+export type ResourceEvent = Types.ResourceEvent
+export type ErrorEvent = Types.ErrorEvent
+export type ProgressionEvent = Types.ProgressionEvent
+export type DimensionEvent = Types.DimensionEvent
+export type RemoteConfig = Types.RemoteConfig
+export type PsuedoPlayerData = Types.PsuedoPlayerData
+export type ServerPsuedoPlayer = Types.ServerPsuedoPlayer
+export type AnalyticsOptions = Types.AnalyticsOptions
+export type PromiseStatus = Types.PromiseStatus
+export type PromiseStatuses = Types.PromiseStatuses
+export type Promise<T, U> = Types.Promise<T, U>
+export type TeleportEvent = Types.TeleportEvent
 
 local DEFAULT_TRANSACTION_TYPE: TransactionType = "Gameplay"
 
@@ -541,8 +540,8 @@ function Validate.dimensionData(data: DimensionData): Promise<nil, string>
 			return reject("player is required")
 		elseif not data.event or typeof(data.event) ~= "string" then
 			return reject("event is required")
-		elseif data.value == nil then
-			return reject("value is required")
+		elseif data.value and typeof(data.value) ~= "string" then
+			return reject("value must be a string or nil")
 		end
 
 		return resolve()
@@ -1309,7 +1308,7 @@ function Analytics.getRemoteConfig(remoteConfig: RemoteConfig): Promise<string, 
 end
 
 -- GameAnalytics method aliases for custom dimensions
-local dimensionSetter: { [AnalyticsTypes.GADimension]: string } = {
+local dimensionSetter: { [Types.GADimension]: string } = {
 	dimension01 = "setCustomDimension01",
 	dimension02 = "setCustomDimension02",
 	dimension03 = "setCustomDimension03",
@@ -1369,7 +1368,7 @@ function Analytics.setCustomDimension(data: DimensionData): Promise<nil, string>
 			return reject(
 				"Analytics.setCustomDimension - dimension is invalid, please define it in customDimensions during Analytics.start()"
 			)
-		elseif dimensions and not table.find(dimensions, data.value) then
+		elseif data.value and dimensions and not table.find(dimensions, data.value) then
 			return reject(
 				"Analytics.setCustomDimension - dimension value is invalid, please define it as a value in customDimensions during Analytics.start()"
 			)

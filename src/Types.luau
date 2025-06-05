@@ -191,11 +191,11 @@ export type ProgressionEvent = {
 	@interface DimensionEvent
 	@within Analytics
 	.dimension GADimension
-	.value string
+	.value string?
 ]=]
 export type DimensionEvent = BaseEvent & {
 	dimension: GADimension,
-	value: string,
+	value: string?,
 }
 
 --[=[
