@@ -60,12 +60,12 @@ export type ProgressionStatus = "Start" | "Fail" | "Complete"
 	@interface DimensionData
 	@within Analytics
 	.event GADimension
-	.value string
+	.value string?
 	.player Player -- Player who triggered the event
 ]=]
 export type DimensionData = {
 	event: GADimension,
-	value: string,
+	value: string?,
 	player: Player,
 }
 
