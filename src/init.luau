@@ -207,6 +207,65 @@ local function flushTrackedEvents(player: Player)
 	end
 end
 
+function Analytics.flushTrackedEvent(player: Player, event: string)
+	if not player or not analyticsStarted then
+		return
+	end
+
+	-- Check if player has any events to flush
+	if not events[player] and not trackedEvents[player] then
+		return
+	end
+
+	-- Flush the specific event for the player
+	if events[player] then
+		for index, trackedEvent in pairs(events[player]) do
+			if trackedEvent.event ~= event then
+				continue
+			end
+
+			Analytics.logPlayerEvent({
+				player = player,
+				event = trackedEvent.event,
+				value = trackedEvent.value,
+				fields = trackedEvent.fields,
+			})
+
+			table.remove(events[player], index)
+
+			break
+		end
+
+		-- Clear player from events if no more events are left
+		if #events[player] == 0 then
+			events[player] = nil
+		end
+	end
+
+	if trackedEvents[player][event] then
+		Analytics.logPlayerEvent({
+			player = player,
+			event = event,
+			value = trackedEvents[player][event],
+		})
+
+		-- Remove the event from tracked events
+		trackedEvents[player][event] = nil
+
+		-- If there are no more tracked events for the player,
+		-- remove the player from the table
+		local eventCount = 0
+
+		for _, _ in pairs(trackedEvents[player]) do
+			eventCount += 1
+		end
+
+		if eventCount == 0 then
+			trackedEvents[player] = nil
+		end
+	end
+end
+
 -- Formats an event string to be GameAnalytics compatible
 local function formatEventString(event: string): string
 	-- Sanitize event string to prevent errors
